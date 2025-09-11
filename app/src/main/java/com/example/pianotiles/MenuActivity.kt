@@ -15,7 +15,7 @@ class MenuActivity : AppCompatActivity() {
 
         playButton.setOnClickListener {
             val intent = Intent(this, GameActivity::class.java)
-            intent.putExtra("LEVEL_NUMBER", 0)
+            intent.putExtra("LEVEL_NUMBER", 1)
             startActivity(intent)
         }
 
