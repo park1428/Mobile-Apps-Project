@@ -1,13 +1,17 @@
 package com.example.pianotiles
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
 import android.view.View
+import android.view.animation.LinearInterpolator
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.util.Random
 
@@ -16,6 +20,9 @@ class GameActivity : AppCompatActivity() {
     private lateinit var config: LevelConfig
     private lateinit var scoreText: TextView
     private lateinit var livesText: TextView
+//    private lateinit var handler : Handler
+//    private lateinit var spawnRunnable : Runnable
+    private var gameActive = true
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
@@ -23,6 +30,7 @@ class GameActivity : AppCompatActivity() {
         tileContainer = findViewById(R.id.tileContainer)
         scoreText = findViewById(R.id.scoreText)
         livesText = findViewById(R.id.livesText)
+        livesText.text = "Lives: ${Player.lives}"
 
         config = initializeLevel()
         Player.score = 0
@@ -52,8 +60,9 @@ class GameActivity : AppCompatActivity() {
         return LevelData.getLevelConfig(levelNumber)
     }
 
-    private fun spawnTile() {
-        val tileX = getRandomColumn()
+    private fun spawnTile(column: Int) {
+        val columnWidth = tileContainer.width/4
+        val tileX = (column * columnWidth).toFloat()
         val tileWidth = tileContainer.width/4
         val tileHeight = (tileWidth * 1.5).toInt()
 
@@ -63,6 +72,8 @@ class GameActivity : AppCompatActivity() {
         // this is for later on when swiping is incorporated
 
         val tileButton = Button(this).apply {
+            tag = tile
+
             layoutParams = FrameLayout.LayoutParams(tileWidth, tileHeight)
             x = tileX
             y = -tileHeight.toFloat()
@@ -73,6 +84,9 @@ class GameActivity : AppCompatActivity() {
                 // $Player.score does not work
                 // If it was $score, it would work
                 scoreText.text = "Score: ${Player.score}"
+                if (Player.score >= config.requiredPoints) {
+                    endGame(true)
+                }
             }
         }
 
@@ -84,21 +98,40 @@ class GameActivity : AppCompatActivity() {
         tileButton.animate()
             .y(tileContainer.height.toFloat()) // move to this place
             .setDuration(duration) // move for this amount of time
+            .setInterpolator(LinearInterpolator()) // figure out why this works
             .withEndAction {
-                tileContainer.removeView(tileButton)
+                if (tileButton.parent != null) {
+                    // A life should only be lost if the button still has a parent tileContainer
+                    // This is because if you already clicked it should have been removed from
+                    // the parent tileContainer
+                    tileContainer.removeView(tileButton)
+                    Player.lives --
+                    val prefs = getSharedPreferences("gameprefs", MODE_PRIVATE)
+                    prefs.edit().putInt("lives", Player.lives).apply()
+                    if (Player.lives == 0) {
+                        endGame(false)
+                    }
+                }
+                livesText.text = "Lives: ${Player.lives}"
             } // delete button when it ends moving
             .start()
     }
 
     private fun startSpawningTiles() {
+        // ".." is inclusive. 1..4 does 1, 2, 3, 4
+        // "until" is exclusive of the second parameter. 1 until 4 does 1, 2, 3
         val handler = Handler(Looper.getMainLooper())
         val spawnRunnable = object : Runnable {
             override fun run() {
+                if (!gameActive) {
+                    return
+                }
                 val tilesToSpawn = (1..2).random()
-                // ".." is inclusive. 1..4 does 1, 2, 3, 4
-                // "until" is exclusive of the second parameter. 1 until 4 does 1, 2, 3
-                for (i in 1..tilesToSpawn) {
-                    spawnTile()
+                val columns = (0 until 4).toMutableList()
+                columns.shuffle()
+                val chosenColumns = columns.take(tilesToSpawn)
+                for (column in chosenColumns) {
+                    spawnTile(column)
                 }
                 handler.postDelayed(this, config.spawnRate)
             }
@@ -106,10 +139,67 @@ class GameActivity : AppCompatActivity() {
         handler.post(spawnRunnable)
     }
 
-    private fun getRandomColumn(): Float {
-        val columnWidth = tileContainer.width/4
-        val column = (0 until 4).random()
-        return (column * columnWidth).toFloat()
-        // multiplying width by the column number selected gives you the x value of that column
+    private fun endGame(win: Boolean) {
+        gameActive = false
+
+//        if (Player.score > Player.topScore) {
+//            Player.topScore = Player.score
+//        }
+
+        for (i in 0 until tileContainer.childCount) {
+            // goes through each items and stops the animation
+            tileContainer.getChildAt(i).animate().cancel()
+        }
+
+        val winMessage = TextView(this).apply {
+            text = "You won!"
+            textSize = 40f
+            setTextColor(Color.GREEN)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+            y -= 100f
+        }
+        val loseMessage = TextView(this).apply {
+            text = "You lost!"
+            textSize = 40f
+            setTextColor(Color.RED)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+            y -= 100f
+        }
+        val menuButton = Button(this).apply {
+            text = "Return to Menu"
+            textSize = 40f
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+            y += 100f
+            setOnClickListener {
+                val intent = Intent(this@GameActivity, MenuActivity::class.java)
+                startActivity(intent)
+                finish()
+            }
+        }
+        if (win) {
+            tileContainer.addView(winMessage)
+        } else {
+            tileContainer.addView(loseMessage)
+        }
+        tileContainer.addView(menuButton)
     }
+
+//    private fun getRandomColumn(): Float {
+//        val columnWidth = tileContainer.width/4
+//        val column = (0 until 4).random()
+//        return (column * columnWidth).toFloat()
+//        // multiplying width by the column number selected gives you the x value of that column
+//    }
 }

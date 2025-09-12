@@ -30,7 +30,7 @@ class LevelSelectActivity : AppCompatActivity() {
                 setPadding(20, 20, 20, 20)
             }
             levelButton.setOnClickListener {
-                val intent = Intent(this@LevelSelectActivity, GameActivity::class.java)
+                val intent = Intent(this@LevelSelectActivity, MenuActivity::class.java)
                 intent.putExtra("LEVEL_NUMBER", levelNumber)
                 startActivity(intent)
             }
