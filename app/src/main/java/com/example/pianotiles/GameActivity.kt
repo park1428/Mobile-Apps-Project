@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -13,20 +14,34 @@ import java.util.Random
 class GameActivity : AppCompatActivity() {
     private lateinit var tileContainer: FrameLayout
     private lateinit var config: LevelConfig
-//    private lateinit var scoreText: TextView
-    private lateinit var player: Player
+    private lateinit var scoreText: TextView
+    private lateinit var livesText: TextView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
 
         tileContainer = findViewById(R.id.tileContainer)
-//        scoreText = findViewById(R.id.scoreText)
+        scoreText = findViewById(R.id.scoreText)
+        livesText = findViewById(R.id.livesText)
 
         config = initializeLevel()
-//        player.score = 0
+        Player.score = 0
 
         tileContainer.post {
             startSpawningTiles()
+            createLines()
+        }
+    }
+
+    private fun createLines() {
+        val columnWidth = tileContainer.width/4f
+        for (i in 1..3) {
+            val line = View(this).apply {
+                layoutParams = FrameLayout.LayoutParams(3, FrameLayout.LayoutParams.MATCH_PARENT)
+                setBackgroundColor(Color.LTGRAY)
+                x = columnWidth * i
+            }
+            tileContainer.addView(line)
         }
     }
 
@@ -54,8 +69,10 @@ class GameActivity : AppCompatActivity() {
             setBackgroundColor(Color.BLACK)
             setOnClickListener {
                 tileContainer.removeView(this)
-//                player.score ++
-
+                Player.score ++
+                // $Player.score does not work
+                // If it was $score, it would work
+                scoreText.text = "Score: ${Player.score}"
             }
         }
 
@@ -67,7 +84,9 @@ class GameActivity : AppCompatActivity() {
         tileButton.animate()
             .y(tileContainer.height.toFloat()) // move to this place
             .setDuration(duration) // move for this amount of time
-            .withEndAction { tileContainer.removeView(tileButton) } // delete button when it ends moving
+            .withEndAction {
+                tileContainer.removeView(tileButton)
+            } // delete button when it ends moving
             .start()
     }
 
@@ -76,6 +95,8 @@ class GameActivity : AppCompatActivity() {
         val spawnRunnable = object : Runnable {
             override fun run() {
                 val tilesToSpawn = (1..2).random()
+                // ".." is inclusive. 1..4 does 1, 2, 3, 4
+                // "until" is exclusive of the second parameter. 1 until 4 does 1, 2, 3
                 for (i in 1..tilesToSpawn) {
                     spawnTile()
                 }

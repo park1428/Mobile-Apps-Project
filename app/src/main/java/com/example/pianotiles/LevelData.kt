@@ -10,12 +10,12 @@ object LevelData {
     )
     fun getLevelConfig(level: Int): LevelConfig {
         return when(level) {
-            1 -> LevelConfig(750f, 1500L)
+            1 -> LevelConfig(700f, 1500L)
             2 -> LevelConfig(800f, 1400L)
             3 -> LevelConfig(850f, 1350L)
             4 -> LevelConfig(900f, 1300L)
             5 -> LevelConfig(1000f, 1250L)
-            else -> LevelConfig(750f, 1500L)
+            else -> LevelConfig(700f, 1500L)
         }
     }
 }

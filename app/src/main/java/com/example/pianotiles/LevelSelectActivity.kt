@@ -15,7 +15,7 @@ class LevelSelectActivity : AppCompatActivity() {
         setContentView(R.layout.activity_level_select)
 
         val levelGrid = findViewById<GridLayout>(R.id.levelGrid)
-        val totalLevels = 5
+//        val totalLevels = 5
 
         for (level in LevelData.levels) {
             val buttonText = level.name
