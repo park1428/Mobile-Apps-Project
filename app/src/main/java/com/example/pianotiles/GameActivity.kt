@@ -60,11 +60,12 @@ class GameActivity : AppCompatActivity() {
         return LevelData.getLevelConfig(levelNumber)
     }
 
-    private fun spawnTile(column: Int) {
+    private fun spawnTile(column: Int, sizeScale: Double) {
         val columnWidth = tileContainer.width/4
         val tileX = (column * columnWidth).toFloat()
         val tileWidth = tileContainer.width/4
-        val tileHeight = (tileWidth * 1.5).toInt()
+        var tileHeight = (tileWidth * 1.5).toInt()
+        tileHeight = (tileHeight * sizeScale).toInt()
 
         val tile = Tile(size = tileWidth)
         // tile object is technically unnecessary right now
@@ -126,12 +127,30 @@ class GameActivity : AppCompatActivity() {
                 if (!gameActive) {
                     return
                 }
-                val tilesToSpawn = (1..2).random()
+                val levelNumber = intent.getIntExtra("LEVEL_NUMBER", 1)
+                var tilesToSpawn = 1
+                if (levelNumber > 1) {
+                    tilesToSpawn = (1..2).random()
+                }
+                if (levelNumber > 3) {
+                    tilesToSpawn = (1..3).random()
+                }
                 val columns = (0 until 4).toMutableList()
                 columns.shuffle()
                 val chosenColumns = columns.take(tilesToSpawn)
+
+                var sizeScale = 1.0
+                if (levelNumber > 3) {
+//                      val randomScale = 0.5 + Random().nextDouble() * 0.5
+//                      tileHeight = (tileHeight * randomScale).toInt()
+                    val isShorter = (1..4).random()
+                    if (isShorter == 1) {
+                        sizeScale = 0.7
+                    }
+                }
+
                 for (column in chosenColumns) {
-                    spawnTile(column)
+                    spawnTile(column, sizeScale)
                 }
                 handler.postDelayed(this, config.spawnRate)
             }
@@ -155,6 +174,7 @@ class GameActivity : AppCompatActivity() {
             text = "You won!"
             textSize = 40f
             setTextColor(Color.GREEN)
+            setBackgroundColor(Color.WHITE)
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -166,6 +186,7 @@ class GameActivity : AppCompatActivity() {
             text = "You lost!"
             textSize = 40f
             setTextColor(Color.RED)
+            setBackgroundColor(Color.WHITE)
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -190,8 +211,10 @@ class GameActivity : AppCompatActivity() {
         }
         if (win) {
             tileContainer.addView(winMessage)
+            winMessage.bringToFront()
         } else {
             tileContainer.addView(loseMessage)
+            winMessage.bringToFront()
         }
         tileContainer.addView(menuButton)
     }

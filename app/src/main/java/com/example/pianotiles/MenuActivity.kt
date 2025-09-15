@@ -20,6 +20,7 @@ class MenuActivity : AppCompatActivity() {
     private lateinit var timerText : TextView
 //    private lateinit var topScoreText: TextView
     override fun onCreate(savedInstanceState: Bundle?) {
+        // reset the preferences
 //        val prefs = getSharedPreferences("gameprefs", MODE_PRIVATE)
 //        prefs.edit()
 //            .putInt("lives", 5)
@@ -102,6 +103,16 @@ class MenuActivity : AppCompatActivity() {
                     }
                 }
                 timer.start()
+            } else {
+                Player.lives = 5
+                val prefs = getSharedPreferences("gameprefs", MODE_PRIVATE)
+                prefs.edit().putInt("lives", Player.lives).apply()
+                livesText.text = "Lives: ${Player.lives}"
+                prefs.edit().putLong("livesResetTime", 0L).apply() // for next time
+
+                playButton.isEnabled = true
+                playButton.alpha = 1f
+                container.removeView(timerText)
             }
         }
 
